@@ -7,6 +7,8 @@ import (
 	"github.com/hashicorp/packer/common"
 	"github.com/hashicorp/packer/packer"
 	"github.com/hashicorp/packer/packer/plugin"
+	"github.com/hashicorp/packer/helper/multistep"
+	"github.com/vmware/go-vcloud-director/v2/types/v56"
 )
 
 // BuilderID : unique ID for builder
@@ -26,10 +28,50 @@ type Config struct {
 	VAppSize
 	PublishToSameCatalog	bool
 	PublishCatalogName		bool
+	AcceptAllEulas			bool // (should default to true)
 }
 
 type Builder struct {
-	
+	config Config
+	runner multistep.Runner	
 }
 
-func (b* Builder) ConfigSpec() hcldec.ObjectSpec { return b.config.FlatMaptructure().HCL2Spec() }
+func (b *Builder) ConfigSpec() hcldec.ObjectSpec { return b.config.FlatMaptructure().HCL2Spec() }
+
+func (b *Builder) Prepare(raws ...interface{}) ([]string, []string, error) {
+
+}
+
+func (b *Builder) Run(ctx context.Context, ui packer.Ui, hook packer.Hook) (packer.Artifact, error) {
+	vcdConfig := VCDConfig{
+		// TODO: Fill in values
+	}
+
+	vcdClient, err := vcdConfig.getClient()
+
+	// TODO: Find out better way to error - is this correct? Probably use fmt.Errorf?
+	if err != nil {
+		return nil, err
+	}
+
+	/* TODO: 
+	1. Query vApp Template to be used as base - vApp template must have only one VM
+	>> vappTemplate := queryVappTemplate(vcdClient, <TODO>, <TODO>) - https://github.com/vmware/go-vcloud-director/blob/master/govcd/catalog.go
+
+	2. Ensure vApp template must only have one VM (NOTE: not sure if necessary or will be handled better downstream?)
+	>> len(vappTemplate.VAppTemplate.Children.VM) == 1
+
+	3. Randomly generate VM name
+	>> builderName := <TODO>
+
+	4. Create VM using vAppTemplate (ensure vAppTemplate has sshd)
+
+	5. Power on VM
+
+	6. Provision VM
+
+	7. Power off VM
+
+	8. Remove VM
+	*/
+}
