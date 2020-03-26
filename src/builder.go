@@ -43,16 +43,13 @@ func (b *Builder) Prepare(raws ...interface{}) ([]string, []string, error) {
 }
 
 func (b *Builder) Run(ctx context.Context, ui packer.Ui, hook packer.Hook) (packer.Artifact, error) {
-	vcdConfig := VCDConfig{
-		// TODO: Fill in values
-	}
+	// Creating statebag
+	state := new(multistep.BasicStateBag)
 
-	vcdClient, err := vcdConfig.getClient()
-
-	// TODO: Find out better way to error - is this correct? Probably use fmt.Errorf?
-	if err != nil {
-		return nil, err
-	}
+	// Initialising statebag
+	state.Put("config", &b.config)
+	state.Put("hook", hook)
+	state.Put("ui", ui)
 
 	/* TODO: 
 	1. Query vApp Template to be used as base - vApp template must have only one VM
