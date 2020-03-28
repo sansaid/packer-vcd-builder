@@ -22,13 +22,20 @@ func (s *StepVCDConfig) Run(ctx context.Context, state multistep.StateBag) multi
 	ui.Say("Parsing endpoint URL")
 	u, err := url.ParseRequestURI(v.Endpoint)
 
-	stateError(err, state)
+	if err != nil {
+		state.Put("error", err)
+		return multistep.ActionHalt
+	}
 
 	ui.Say("Authenticating with vCD server")
 	vcdClient := govcd.NewVCDClient(*u, v.Insecure)
-	err = vcdClient.Authenticate(v.Username, v.Password, v.Org)
+	
+	if err = vcdClient.Authenticate(v.Username, v.Password, v.Org); err != nil {
+		state.Put("error", err)
+		return multistep.ActionHalt
+	}
 
-	stateError(err, state)
+	ui.Say("Authentication successful")
 	state.Put("vcdClient", vcdClient)
 	
 	return multistep.ActionContinue

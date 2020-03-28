@@ -8,8 +8,6 @@ import (
 )
 
 type StepVMCreate struct {
-	ParentVapp		string
-	VDC				string
 	VappTemplateUrl	string
 }
 
@@ -17,50 +15,74 @@ func (s *StepVMCreate) Run(ctx context.Context, state multistep.StateBag) multis
 	ui := state.Get("ui").(packer.Ui)
 	vcdClient := state.Get("vcdClient").(govcd.VCDClient)
 
-	ui.Say("Creating new catalog reference")
-	vcdCatalog := govcd.NewCatalog(vcdClient.Client)
-
 	ui.Say("Fetching vApp template")
+	vcdCatalog := govcd.NewCatalog(vcdClient.Client)
 	vappTemplate, err := vcdCatalog.GetVappTemplateByHref(s.VAppTemplateUrl)
 
-	stateError(err, state)
-
-	vmName := generateRandomVmName() // TODO: needs to be implemented
+	if err != nil {
+		state.Put("error", err)
+		return multistep.ActionHalt
+	}
 	
 	ui.Say("Creating VM from vApp template")
 	vapp := govcd.NewVapp(vcdClient.Client)
 	state.Put("vapp", *vapp)
 
+	vmName, err := generateRandomVmName()
+
+	if err != nil {
+		state.Put("error", err)
+		return multistep.ActionHalt
+	}
+	
 	vmTask, err := vapp.AddNewVM(vmName, vappTemplate, nil, true)
 
-	stateError(err, state)
+	if err != nil {
+		state.Put("error", err)
+		return multistep.ActionHalt
+	}
+
 	state.Put("vmTask", vmTask)
 
-	err = vmTask.WaitTaskCompletion()
+	if err = vmTask.WaitTaskCompletion(); err != nil {
+		state.Put("error", err)
+		return multistep.ActionHalt
+	}
 
-	stateError(err, state)
-	
-	err = vmTask.Refresh()
+	if err = vmTask.Refresh(); err != nil {
+		state.Put("error", err)
+		return multistep.ActionHalt
+	}
 
-	stateError(err, state)
 	state.Put("vmTask", vmTask)
 	
+	ui.Say("Powering on newly created VM")
 	vm, err := vcdClient.Client.FindVMByHref(vmTask.HREF)
 
-	stateError(err, state)
+	if err != nil {
+		state.Put("error", err)
+		return multistep.ActionHalt
+	}
+
 	state.Put("vm", vm)
 
 	vmPowerOnTask, err := vm.PowerOn()
 
-	stateError(err, state)
-	
-	err = vmPowerOnTask.WaitTaskCompletion()
+	if err != nil {
+		state.Put("error", err)
+		return multistep.ActionHalt
+	}
 
-	stateError(err, state)
+	if err = vmPowerOnTask.WaitTaskCompletion(); err != nil {
+		state.Put("error", err)
+		return multistep.ActionHalt
+	}
 
-	err = vm.Refresh()
+	if err = vm.Refresh(); err != nil {
+		state.Put("error", err)
+		return multistep.ActionHalt
+	}
 
-	stateError(err, state)
 	state.Put("vm", vm)
 	
 	return multistep.ActionContinue

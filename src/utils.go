@@ -1,16 +1,17 @@
 package vcdbuilder
 
 import (
-	"github.com/hashicorp/packer/helper/multistep"
+	"fmt"
+	"github.com/google/uuid"
 )
 
-func stateError(err error, state multistep.StateBag) {
-	if err != nil {
-		state.Put("error", err)
-		return multistep.ActionHalt
-	}
-}
+func generateRandomVmName() (string, error) {
+	uuid, err := uuid.NewRandom()
 
-func generateRandomVmName() string {
-	return
+	if err != nil {
+		return nil, fmt.Errorf("Error generating random VM name: %s", err)
+	}
+	
+	vmName := fmt.Sprintf("packergen-%s", string(uuid))
+	return vmName, err
 }
