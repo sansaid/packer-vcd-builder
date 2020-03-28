@@ -29,8 +29,8 @@ func (s *StepVCDConfig) Run(ctx context.Context, state multistep.StateBag) multi
 	err = vcdClient.Authenticate(v.Username, v.Password, v.Org)
 
 	stateError(err, state)
-
 	state.Put("vcdClient", vcdClient)
+	
 	return multistep.ActionContinue
 }
 

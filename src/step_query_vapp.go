@@ -22,7 +22,6 @@ func (s *StepVappTemplate) Run(ctx context.Context, state multistep.StateBag) mu
 	vappTemplate, err := vcdCatalog.GetVappTemplateByHref(s.VAppTemplateUrl)
 
 	stateError(err, state)
-
 	state.Put("vappTemplate", vappTemplate)
 
 	return multistep.ActionContinue

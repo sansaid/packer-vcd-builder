@@ -27,13 +27,68 @@ func (s *StepVMCreate) Run(ctx context.Context, state multistep.StateBag) multis
 
 	vmName := generateRandomVmName() // TODO: needs to be implemented
 	
-	ui.Say("Creating new vApp from template")
-	// Implement VM creation: 
+	ui.Say("Creating VM from vApp template")
+	vapp := govcd.NewVapp(vcdClient.Client)
+	state.Put("vapp", *vapp)
 
+	vmTask, err := vapp.AddNewVM(vmName, vappTemplate, nil, true)
+
+	stateError(err, state)
+	state.Put("vmTask", vmTask)
+
+	err = vmTask.WaitTaskCompletion()
+
+	stateError(err, state)
+	
+	err = vmTask.Refresh()
+
+	stateError(err, state)
+	state.Put("vmTask", vmTask)
+	
+	vm, err := vcdClient.Client.FindVMByHref(vmTask.HREF)
+
+	stateError(err, state)
+	state.Put("vm", vm)
+
+	vmPowerOnTask, err := vm.PowerOn()
+
+	stateError(err, state)
+	
+	err = vmPowerOnTask.WaitTaskCompletion()
+
+	stateError(err, state)
+
+	err = vm.Refresh()
+
+	stateError(err, state)
+	state.Put("vm", vm)
+	
 	return multistep.ActionContinue
 }
 
 func (s *StepVMCreate) Cleanup(state multistep.StateBag) {
-	// No cleanup needed in vApp template query stage
+	completedTaskStatuses := []string{"success", "error", "aborted"}
+
+	ui := state.Get("ui").(packer.Ui)
+	vcdClient := state.Get("vcdClient").(govcd.VCDClient)
+	vmTask := state.Get("vmTask").(govcd.Task)
+	vapp := state.Get("vapp").(govcd.VApp)
+	vm := state.Get("vm").(govcd.VM)
+
+	vmTask.Refresh()
+
+	for _, status := completedTaskStatuses {
+		if vmTask.Status != status {
+			vmTask.CancelTask()
+			return 
+		}
+	}
+	
+	vm.Refresh()
+
+	if vm.IsDeployed() {
+		vapp.RemoveVM(vm)
+	}
+	
 	return
 }
