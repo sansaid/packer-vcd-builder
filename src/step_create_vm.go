@@ -8,7 +8,7 @@ import (
 )
 
 type StepVMCreate struct {
-	VappTemplateUrl	string
+	BaseVappTemplateUrl	string
 }
 
 func (s *StepVMCreate) Run(ctx context.Context, state multistep.StateBag) multistep.StepAction {
@@ -17,7 +17,7 @@ func (s *StepVMCreate) Run(ctx context.Context, state multistep.StateBag) multis
 
 	ui.Say("Fetching vApp template")
 	vcdCatalog := govcd.NewCatalog(vcdClient.Client)
-	vappTemplate, err := vcdCatalog.GetVappTemplateByHref(s.VAppTemplateUrl)
+	vappTemplate, err := vcdCatalog.GetVappTemplateByHref(s.BaseVappTemplateUrl)
 
 	if err != nil {
 		state.Put("error", err)
@@ -106,11 +106,7 @@ func (s *StepVMCreate) Cleanup(state multistep.StateBag) {
 		}
 	}
 	
-	vm.Refresh()
-
-	if vm.IsDeployed() {
-		vapp.RemoveVM(vm)
-	}
+	vapp.Delete()
 	
 	return
 }

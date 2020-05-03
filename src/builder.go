@@ -20,12 +20,10 @@ const BuilderID = "sansaid.vcd"
 // TODO: Identify full config needed to build images
 type Config struct {
 	common.PackerConfig	`mapstructure:",squash"`
-	Username
-	Password
-	OrgName
-	BaseImage
-	SourceCatalog
-	VAppSize
+	Username				string
+	Password				string
+	OrgName					string
+	VAppTemplateHref		string
 	PublishToSameCatalog	bool
 	PublishCatalogName		bool
 	AcceptAllEulas			bool // (should default to true)
